@@ -1,0 +1,4 @@
+converters.UpperCaseConverter
+converters.LetterBlocker Z
+converters.LetterBlocker K
+converters.LowerCaseConverter

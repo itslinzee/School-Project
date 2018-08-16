@@ -1,0 +1,218 @@
+package game;
+
+import org.junit.jupiter.api.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import game.MasterMind.Response;
+import static game.MasterMind.Response.*;
+import game.MasterMind.GameStatus;
+
+public class MasterMindTest {
+    private MasterMind masterMind;
+
+    @BeforeEach
+    void setUp() {
+        List<Color> hiddenCode = Arrays.asList(Color.RED, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.BLUE, Color.MAGENTA);
+        masterMind = new MasterMind(hiddenCode);
+    }
+
+    @Test
+    void canary() {
+        assertTrue(true);
+    }
+
+    @Test
+    void toSuppressCoverageIssueForResponseEnum() {
+        Response.values();
+        Response.valueOf("NO_MATCH");
+        assertTrue(true);
+    }
+
+    @Test
+    void toSuppressCoverageIssueForGameStatusEnum() {
+        GameStatus.values();
+        GameStatus.valueOf("IN_PROGRESS");
+        assertTrue(true);
+    }
+
+    @Test
+    void UserGuessesNoColorCorrect() {
+        List<Color> userInput = Arrays.asList(Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN);
+
+        Map<Response, Long> response = masterMind.guess(userInput);
+
+        assertAll(
+                () -> assertEquals(6L, (long) response.get(NO_MATCH)),
+                () -> assertEquals(0L, (long) response.get(MATCH)),
+                () -> assertEquals(0L, (long) response.get(POSITIONAL_MATCH)));
+    }
+
+    @Test
+    void UserGuessesOneColorWrongPosition() {
+        List<Color> userInput = Arrays.asList(Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN, Color.ORANGE, Color.CYAN);
+
+        Map<Response, Long> response = masterMind.guess(userInput);
+
+        assertAll(
+                () -> assertEquals(5L, (long) response.get(NO_MATCH)),
+                () -> assertEquals(1L, (long) response.get(MATCH)),
+                () -> assertEquals(0L, (long) response.get(POSITIONAL_MATCH)));
+    }
+
+    @Test
+    void UserGuessesOneColorRightPosition() {
+        List<Color> userInput = Arrays.asList(Color.CYAN, Color.ORANGE, Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN);
+
+        Map<Response, Long> response = masterMind.guess(userInput);
+
+        assertAll(
+                () -> assertEquals(5L, (long) response.get(NO_MATCH)),
+                () -> assertEquals(0L, (long) response.get(MATCH)),
+                () -> assertEquals(1L, (long) response.get(POSITIONAL_MATCH)));
+    }
+
+    @Test
+    void UserGuessesTwoColorsOneRightPosition() {
+        List<Color> userInput = Arrays.asList(Color.CYAN, Color.ORANGE, Color.CYAN, Color.CYAN, Color.CYAN, Color.RED);
+
+        Map<Response, Long> response = masterMind.guess(userInput);
+
+        assertAll(
+                () -> assertEquals(4L, (long) response.get(NO_MATCH)),
+                () -> assertEquals(1L, (long) response.get(MATCH)),
+                () -> assertEquals(1L, (long) response.get(POSITIONAL_MATCH)));
+    }
+
+    @Test
+    void UserGuessesAllColorsCorrectPositions() {
+        List<Color> userInput = Arrays.asList(Color.RED, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.BLUE, Color.MAGENTA);
+
+        Map<Response, Long> response = masterMind.guess(userInput);
+
+        assertAll(
+                () -> assertEquals(0L, (long) response.get(NO_MATCH)),
+                () -> assertEquals(0L, (long) response.get(MATCH)),
+                () -> assertEquals(6L, (long) response.get(POSITIONAL_MATCH)));
+    }
+
+    @Test
+    void UserGuessesAllSameColorOnlyOneInCode() {
+        List<Color> userInput = Arrays.asList(Color.ORANGE, Color.ORANGE, Color.ORANGE, Color.ORANGE, Color.ORANGE, Color.ORANGE);
+
+        Map<Response, Long> response = masterMind.guess(userInput);
+
+        assertAll(
+                () -> assertEquals(5L, (long) response.get(NO_MATCH)),
+                () -> assertEquals(0L, (long) response.get(MATCH)),
+                () -> assertEquals(1L, (long) response.get(POSITIONAL_MATCH)));
+    }
+
+    @Test
+    void ColorInCodeOnceButUserGuessesTwice() {
+        List<Color> userInput = Arrays.asList(Color.CYAN, Color.RED, Color.CYAN, Color.CYAN, Color.CYAN, Color.RED);
+
+        Map<Response, Long> response = masterMind.guess(userInput);
+
+        assertAll(
+                () -> assertEquals(5L, (long) response.get(NO_MATCH)),
+                () -> assertEquals(1L, (long) response.get(MATCH)),
+                () -> assertEquals(0L, (long) response.get(POSITIONAL_MATCH)));
+    }
+
+    @Test
+    void GameStatusAtStartOfGame() {
+        assertEquals(GameStatus.IN_PROGRESS, masterMind.getGameStatus());
+    }
+
+    @Test
+    void GameStatusAfterGuessCallTwice() {
+        List<Color> userInput1 = Arrays.asList(Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN);
+        List<Color> userInput2 = Arrays.asList(Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN);
+
+        masterMind.guess(userInput1);
+        masterMind.guess(userInput2);
+
+        assertEquals(GameStatus.IN_PROGRESS, masterMind.getGameStatus());
+    }
+
+    @Test
+    void GameStatusWithAllColorsInRightPosition() {
+        List<Color> userInput = Arrays.asList(Color.RED, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.BLUE, Color.MAGENTA);
+
+        masterMind.guess(userInput);
+
+        assertEquals(GameStatus.WON, masterMind.getGameStatus());
+    }
+
+    @Test
+    void GameStatusAfter20Turns() {
+        masterMind.tries = 20;
+        List<Color> userInput = Arrays.asList(Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN);
+
+        masterMind.guess(userInput);
+
+        assertEquals(GameStatus.LOST, masterMind.getGameStatus());
+
+    }
+
+    @Test
+    void GameStatusAfterWinningAndStillGuessing() {
+        List<Color> userInput1 = Arrays.asList(Color.RED, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.BLUE, Color.MAGENTA);
+        List<Color> userInput2 = Arrays.asList(Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN, Color.CYAN);
+
+        masterMind.guess(userInput1);
+        masterMind.guess(userInput2);
+
+        assertEquals(GameStatus.WON, masterMind.getGameStatus());
+    }
+
+    @Test
+    void GameStatusWhenGuessingCorrectlyOnLastTurn() {
+        masterMind.tries = 19;
+        List<Color> userInput = Arrays.asList(Color.RED, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.BLUE, Color.MAGENTA);
+
+        masterMind.guess(userInput);
+
+        assertEquals(GameStatus.WON, masterMind.getGameStatus());
+    }                       
+
+    @Test
+    void GameStatusWhenGuessingCorrectlyAfterLoss() {
+        masterMind.tries = 20;
+        List<Color> userInput = Arrays.asList(Color.RED, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.BLUE, Color.MAGENTA);
+
+        masterMind.guess(userInput);
+
+        assertEquals(GameStatus.LOST, masterMind.getGameStatus());
+    }
+
+    @Test
+    void defaultConstructorCalled(){
+        AtomicBoolean called = new AtomicBoolean();
+        MasterMind stub = new MasterMind() {
+            protected List<Color> generateRandomColors(long seed) {
+                called.set(true);
+                return new ArrayList<>();
+            }
+        };
+
+        assertTrue(called.get());
+    } 
+    
+    @Test
+    void verifyGenerateRandomColorsWorks()
+    {
+        List<Color> list1 = masterMind.generateRandomColors(System.currentTimeMillis());
+        List<Color> list2 = masterMind.generateRandomColors(System.currentTimeMillis());
+
+        assertNotEquals(list1, list2);
+    }
+}
+

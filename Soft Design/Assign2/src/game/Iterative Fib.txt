@@ -1,0 +1,12 @@
+ if(position < 2)
+            return 1;
+
+        long fibNumber = 1;
+        long prevFib = 1;
+
+        for(int i = 1; i < position; i++) {
+            long temp = fibNumber;
+            fibNumber += prevFib;
+            prevFib = temp;
+        }
+        return fibNumber;
